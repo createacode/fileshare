@@ -3,25 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>局域网文件传输工具</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>局域网文件快速传输工具 - 极速共享</title>
+    <link rel="icon" type="image/x-icon" href="/client/app.ico">
+    <link rel="stylesheet" href="/client/style.css">
+    <link rel="stylesheet" href="/client/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- 头部 -->
         <header>
             <div class="logo">
-                <i class="fas fa-exchange-alt"></i>
-                <h1>局域网文件传输</h1>
+                <i class="fas fa-bolt"></i>
+                <div class="title-section">
+                    <h1>局域网文件快速传输工具</h1>
+                    <span class="subtitle">基于WebSocket+分片传输，速度可达300MB/s+，支持断点续传、多文件并发、断网恢复</span>
+                    <div class="auto-shutdown-wrapper">
+                        <div class="auto-shutdown">
+                            <span>自动关闭(24小时)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="autoShutdownToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="countdownDisplay" class="countdown">23:59:59</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="room-info">
-                <div class="qr-code">
-                    <img id="qrCode" alt="扫描二维码加入">
-                </div>
+                <div class="qr-code"><img id="qrCode" alt="二维码"></div>
                 <div class="room-url">
-                    <p>手机扫描二维码加入</p>
-                    <p id="roomUrl">正在加载...</p>
+                    <p>手机扫码加入，极速传输</p>
+                    <p id="roomUrl">加载中...</p>
                     <div class="stats">
                         <span><i class="fas fa-user"></i> <span id="clientCount">0</span> 在线</span>
                         <span><i class="fas fa-comment"></i> <span id="chatCount">0</span> 消息</span>
@@ -31,41 +42,23 @@
             </div>
         </header>
 
-        <!-- 主区域 -->
         <main>
-            <!-- 文字共享区域 -->
+            <!-- 文字共享区 -->
             <div class="shared-text-section">
                 <div class="shared-text-header">
-                    <h3><i class="fas fa-comment-dots"></i> 文字共享</h3>
+                    <h3><i class="fas fa-comment"></i> 文字共享</h3>
                     <div class="shared-text-status" id="sharedTextStatus">连接中...</div>
                 </div>
-                
-                <!-- 最新消息显示区 -->
                 <div class="latest-message" id="latestMessage">
                     <div class="message-placeholder">等待消息...</div>
                 </div>
-                
-                <!-- 消息历史下拉框 -->
                 <div class="message-history">
-                    <div class="history-header">
-                        <span>消息历史</span>
-                        <button id="toggleHistory" class="btn-toggle">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="history-content" id="historyContent">
-                        <!-- 消息历史将在这里显示 -->
-                        <div class="empty-history">暂无消息历史</div>
-                    </div>
+                    <div class="history-header"><span>消息历史</span><button id="toggleHistory" class="btn-toggle"><i class="fas fa-chevron-down"></i></button></div>
+                    <div class="history-content" id="historyContent"><div class="empty-history">暂无消息历史</div></div>
                 </div>
-                
-                <!-- 消息输入区 -->
                 <div class="message-input-area">
-                    <input type="text" id="sharedTextInput" class="shared-text-input" 
-                           placeholder="输入共享文字...按Enter发送" maxlength="500">
-                    <button id="sharedTextSendBtn" class="shared-text-send-btn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                    <input type="text" id="sharedTextInput" class="shared-text-input" placeholder="输入文字...按Enter发送" maxlength="500">
+                    <button id="sharedTextSendBtn" class="shared-text-send-btn"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
 
@@ -74,99 +67,125 @@
                 <div class="upload-zone" id="uploadZone">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <h3>拖放文件到此处</h3>
-                    <p>或点击选择文件</p>
-                    <p class="hint">支持断点续传，传输中断可恢复</p>
+                    <p>或点击选择文件（支持多文件）</p>
+                    <p class="hint">本机上传自动快速复制，远程上传极速分片</p>
                     <input type="file" id="fileInput" multiple style="display: none;">
-                    
-                    <!-- 传输统计 -->
                     <div class="transfer-stats">
-                        <div class="stat">
-                            <i class="fas fa-upload"></i>
-                            <span id="uploadSpeed">0 KB/s</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-clock"></i>
-                            <span id="uploadTime">0s</span>
-                        </div>
+                        <div class="stat"><i class="fas fa-upload"></i><span id="uploadSpeed">0 KB/s</span></div>
+                        <div class="stat"><i class="fas fa-clock"></i><span id="uploadTime">0s</span></div>
                     </div>
                 </div>
             </div>
 
-            <!-- 文件列表 -->
+            <!-- 已上传文件列表 -->
             <div class="files-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-folder-open"></i> 已上传文件</h3>
-                    <button id="refreshBtn" class="btn-refresh">
-                        <i class="fas fa-sync-alt"></i> 刷新
-                    </button>
+                    <h3><i class="fas fa-cloud-upload-alt"></i> 已上传文件</h3>
+                    <button id="refreshBtn" class="btn-refresh"><i class="fas fa-sync-alt"></i> 刷新</button>
                 </div>
-                
-                <div class="files-list" id="filesList">
-                    <!-- 文件列表将在这里显示 -->
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>暂无文件</p>
-                        <p>上传文件后将显示在这里</p>
+                <div class="file-toolbar">
+                    <div class="toolbar-left">
+                        <button id="toggleSelectBtn" class="btn-secondary"><i class="fas fa-check-double"></i> 全选/取消</button>
                     </div>
+                    <div class="toolbar-right">
+                        <span class="zip-limit" id="zipLimitHint">限500MB以内</span>
+                        <button id="downloadZipBtn" class="btn-primary"><i class="fas fa-file-archive"></i> 打包下载</button>
+                        <button id="batchDeleteBtn" class="btn-danger"><i class="fas fa-trash-alt"></i> 删除选中</button>
+                    </div>
+                </div>
+                <div class="files-list" id="uploadedFilesList">
+                    <div class="empty-state"><i class="fas fa-inbox"></i><p>暂无文件，请上传或拖拽</p></div>
+                </div>
+            </div>
+
+            <!-- 已下载文件列表 -->
+            <div class="files-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-download"></i> 已下载文件</h3>
+                    <button id="clearDownloadedBtn" class="btn-refresh"><i class="fas fa-trash-alt"></i> 清空记录</button>
+                </div>
+                <div class="files-list" id="downloadedFilesList">
+                    <div class="empty-state"><i class="fas fa-inbox"></i><p>暂无已下载文件</p></div>
                 </div>
             </div>
         </main>
 
-        <!-- 底部信息 -->
+        <!-- 底部 footer 部分 -->
         <footer>
-            <p>当前连接: <span id="status">正在连接...</span></p>
-            <p>上传目录: <span id="uploadDir">./uploads/</span></p>
+            <div class="footer-left">连接状态: <span id="status">正在连接...</span></div>
+            <div class="footer-center"><span>Copyright © 2026.4 XAF</span></div>
+            <div class="footer-right">
+                <span>存储目录: ./uploads/</span>
+                <span class="feature-tag">⚡ 极速传输 | 断点续传 | 多文件并发</span>
+            </div>
         </footer>
     </div>
 
-    <!-- 文件项模板 -->
-    <template id="fileItemTemplate">
-        <div class="file-item">
-            <div class="file-icon">
-                <i class="fas fa-file"></i>
+    <!-- 自定义确认对话框 -->
+    <div id="customConfirm" class="custom-modal" style="display: none;">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">确认操作</div>
+            <div class="custom-modal-body" id="confirmMessage">确定要执行此操作吗？</div>
+            <div class="custom-modal-footer">
+                <button id="confirmYes" class="btn-confirm-yes">确定</button>
+                <button id="confirmNo" class="btn-confirm-no">取消</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 模板 -->
+    <template id="fileItemTemplate">
+        <div class="file-item" data-file-id="">
+            <input type="checkbox" class="file-checkbox" data-file-id="">
+            <div class="file-icon"><i class="fas fa-file"></i></div>
             <div class="file-info">
                 <div class="file-name"></div>
-                <div class="file-meta">
-                    <span class="file-size"></span>
-                    <span class="file-date"></span>
-                </div>
-                <div class="file-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill"></div>
-                    </div>
+                <div class="file-meta"><span class="file-size"></span><span class="file-date"></span><span class="download-count">⬇️ 0</span></div>
+                <div class="file-progress download-progress" style="display: none;">
+                    <div class="progress-bar"><div class="progress-fill"></div></div>
                     <span class="progress-text">0%</span>
                 </div>
-                <div class="transfer-info">
-                    <span class="transfer-speed"></span>
-                    <span class="transfer-time"></span>
-                </div>
+                <div class="transfer-info"><span class="transfer-speed"></span><span class="transfer-time"></span></div>
             </div>
             <div class="file-actions">
-                <button class="btn-action btn-download" title="下载">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="btn-action btn-copy" title="复制链接">
-                    <i class="fas fa-link"></i>
-                </button>
-                <button class="btn-action btn-delete" title="删除">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <button class="btn-action btn-download" title="下载"><i class="fas fa-cloud-download-alt"></i></button>
+                <button class="btn-action btn-copy" title="复制链接"><i class="fas fa-link"></i></button>
+                <button class="btn-action btn-delete" title="删除"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
     </template>
 
-    <!-- 消息项模板 -->
+    <template id="downloadedItemTemplate">
+        <div class="file-item downloaded-item" data-file-id="">
+            <div class="file-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="file-info">
+                <div class="file-name"></div>
+                <div class="file-meta"><span class="file-size"></span><span class="file-date"></span><span class="download-count">⬇️ 0</span></div>
+                <div class="file-progress download-progress" style="display: none;">
+                    <div class="progress-bar"><div class="progress-fill"></div></div>
+                    <span class="progress-text">0%</span>
+                </div>
+                <div class="transfer-info"><span class="transfer-speed"></span><span class="transfer-time"></span></div>
+            </div>
+            <div class="file-actions">
+                <button class="btn-action btn-redownload" title="重新下载"><i class="fas fa-redo-alt"></i></button>
+                <button class="btn-action btn-restore" title="移回已上传"><i class="fas fa-undo-alt"></i></button>
+                <button class="btn-action btn-delete" title="删除"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>
+    </template>
+
     <template id="messageItemTemplate">
-        <div class="message-item">
+        <div class="message-item" data-msg-id="">
             <div class="message-header">
                 <span class="message-sender"></span>
                 <span class="message-time"></span>
+                <button class="btn-msg-delete" title="删除消息"><i class="fas fa-times-circle"></i></button>
             </div>
             <div class="message-content"></div>
         </div>
     </template>
 
-    <script src="/app.js"></script>
+    <script src="/client/app.js"></script>
 </body>
 </html>
