@@ -1,259 +1,362 @@
-# 局域网互传工具
+# 局域网文件快速传输工具 - 完整开发文档
 
-#### 介绍
-一款局域网共享工具，传输文件极快，实测家用普通路由器，电脑向手机传输文件，理想速度可达127Mb/s以上，比数据线还快，同时还支持文字共享，使用简单双击exe即可运行，手机扫码加入
+> 版本: 2.0.1  
+> 最后更新: 2026-04-29  
+> 作者: XAF
+---
+### 局域网文件快速传输助手 系统界面
+![FileShareUI](https://raw.githubusercontent.com/createacode/fileshare/main/FileShareUI.png "系统界面截图")
+---
 
+## 目录
 
-#### 软件架构
-基于WebSocket协议+python+html
-
-
-## 目录结构
-
-```
-fileshare/
-├── main.py              # 主程序文件
-├── client/              # 前端文件目录
-│   ├── index.html      # 主页面
-│   ├── style.css       # 样式文件
-│   └── app.js          # 前端逻辑
-├── uploads/            # 文件上传目录（运行时自动创建）
-└── chat/               # 聊天记录目录（运行时自动创建）
-```
+1. [项目概述](#1-项目概述)
+2. [功能特性](#2-功能特性)
+3. [技术栈](#3-技术栈)
+4. [项目文件结构](#4-项目文件结构)
+5. [安装与运行](#5-安装与运行)
+6. [打包为 EXE](#6-打包为-exe)
+7. [后端 API 文档](#7-后端-api-文档)
+8. [前端模块说明](#8-前端模块说明)
+9. [配置与自定义](#9-配置与自定义)
+10. [常见问题](#10-常见问题)
+11. [更新日志](#11-更新日志)
 
 ---
 
-## 技术栈
+## 1. 项目概述
 
-### 后端技术
-- **Python 3.7+**
-- **aiohttp**: 异步HTTP服务器和WebSocket支持
-- **qrcode**: 二维码生成
-- **PIL/Pillow**: 图像处理
-- **asyncio**: 异步IO支持
+**局域网文件快速传输工具** 是一个基于 Web 的局域网文件共享与即时通讯系统。它利用 WebSocket 和分片上传技术，在局域网内实现极速文件传输（实测速度可达 300 MB/s 以上），支持断点续传、多文件并发、断网恢复、聊天室、下载计数、自动关闭等功能。
 
-### 前端技术
-- **HTML5/CSS3**: 页面结构和样式
-- **JavaScript (ES6)**: 前端交互逻辑
-- **WebSocket**: 实时通信
-- **Font Awesome**: 图标库
-
-## 核心功能
-
-### 1. 文件传输功能
-- 拖拽上传和点击上传
-- 断点续传支持
-- 多文件同时上传
-- 实时上传进度显示
-- 下载速度显示
-- 文件列表管理
-- 文件链接复制
-
-### 2. 文字共享功能
-- 实时文字聊天
-- 消息历史记录
-- 用户自动分配
-- IP地址识别
-- 消息持久化存储
-
-### 3. 网络功能
-- 局域网IP自动发现
-- 二维码分享
-- WebSocket实时通信
-- 端口自动检测
-- 多客户端支持
-
-### 4. 用户界面
-- 响应式设计
-- 实时状态显示
-- 进度条动画
-- 消息通知系统
-- 暗色主题
+核心特点：
+- 无需安装客户端，打开浏览器即可使用
+- 支持 Windows / macOS / Linux 全平台
+- 提供 PyInstaller 打包方案，可生成独立 EXE
+- 内置二维码，手机扫码即连
 
 ---
 
-## 详细API接口
+## 2. 功能特性
 
-### 1. 服务器信息接口
-```http
-GET /api/room-info
-```
-**响应格式：**
-```json
-{
-  "room_url": "http://192.168.1.100:8888",
-  "qr_code": "data:image/png;base64,...",
-  "total_files": 5,
-  "total_clients": 3,
-  "chat_messages": 20,
-  "files": [
-    {
-      "name": "example.jpg",
-      "size": 1024000,
-      "modified": 1634567890
-    }
-  ]
-}
-```
+### 文件传输
+- **拖拽上传 / 点击上传**，支持多文件选择
+- **分块上传**（1MB/块），防止大文件阻塞
+- **断点续传下载**（自动处理 Range 请求）
+- **文件打包下载**（ZIP，单次不超过 500MB）
+- **批量化删除**选中的文件
+- **本机快速复制**：直接复制本地文件到服务器（避免通过浏览器上传）
+- **下载计数器**：记录每个文件的下载次数
 
-### 2. 文件列表接口
-```http
-GET /api/files
-```
-**响应格式：**
-```json
-{
-  "files": [
-    {
-      "id": "example.jpg",
-      "name": "example.jpg",
-      "size": 1024000,
-      "modified": 1634567890,
-      "url": "/api/download/example.jpg"
-    }
-  ]
-}
-```
+### 聊天功能
+- 全局聊天室（WebSocket 实时通信）
+- 自动分配用户昵称（按 IP 生成 “用户1”、“用户2”……）
+- 聊天历史持久化（每日单独文件）
+- **消息删除**：下拉框内每条消息可永久删除（同步删除聊天记录文件）
 
-### 3. 文件上传接口
-```http
-POST /api/upload
-```
-**请求格式：** multipart/form-data
-**响应格式：**
-```json
-{
-  "success": true,
-  "filename": "example.jpg",
-  "size": 1024000,
-  "url": "/api/download/example.jpg"
-}
-```
+### 房间管理
+- 自动获取本机局域网 IP
+- 生成房间二维码 (QR Code)
+- 显示当前在线人数、文件总数、消息总数
 
-### 4. 文件下载接口
-```http
-GET /api/download/{filename}
-```
-支持Range头部，支持断点续传。
+### 系统维护
+- **24 小时自动关闭**（可开关，默认开启）
+- 日志系统（按天滚动，保留 30 天）
+- 端口自动顺延（8888 → 8889 → … 直到空闲）
 
-### 5. 文件删除接口
-```http
-DELETE /api/delete/{filename}
-```
-
-### 6. 聊天历史接口
-```http
-GET /api/chat/history
-```
-**响应格式：**
-```json
-{
-  "messages": [
-    {
-      "id": "abc123def",
-      "message": "Hello",
-      "client_name": "用户1",
-      "client_ip": "192.168.1.101",
-      "timestamp": 1634567890,
-      "time_str": "2023-10-20 14:30:00"
-    }
-  ]
-}
-```
-
-### 7. 发送消息接口
-```http
-POST /api/chat/send
-```
-**请求格式：**
-```json
-{
-  "message": "Hello World"
-}
-```
-
-### 8. WebSocket接口
-```http
-WS /ws
-```
-**消息类型：**
-- `welcome`: 连接欢迎消息
-- `chat_message`: 聊天消息
+### UI/UX 改进（针对窄屏/手机）
+- 窄屏下自动隐藏“全选/打包下载/删除选中”按钮
+- 文件复选框左对齐垂直居中
+- 文件名过长自动换行
+- 文件图标放大并应用渐变色
+- 刷新按钮增加按下动画
 
 ---
 
-## 数据存储格式
+## 3. 技术栈
 
-### 1. 聊天记录格式
-```
-{客户端IP} {日期时间}
-{消息内容}
-
-示例：
-192.168.1.101 2023-10-20 14:30:00
-大家好，开始传输文件吧！
-
-192.168.1.102 2023-10-20 14:31:00
-收到！
-```
-
-### 2. 文件存储
-- 文件存储在`uploads/`目录下
-- 使用原始文件名保存
-- 不支持重名文件（后上传的会覆盖之前的）
-
-### 3. 用户映射
-- 用户按IP地址自动分配用户名
-- 映射关系存储在内存中，重启后重置
-- 格式：`{IP地址}: {用户名}`
+| 组件 | 技术 |
+|------|------|
+| 后端 | Python 3.8+，aiohttp，asyncio |
+| 前端 | HTML5，CSS3，原生 JavaScript (ES6) |
+| 实时通信 | WebSocket (aiohttp) |
+| 文件处理 | aiofiles，shutil，zipfile |
+| 二维码 | qrcode[pil] |
+| 图标库 | Font Awesome 6.4.0 |
+| 打包工具 | PyInstaller |
 
 ---
 
-### 端口占用处理逻辑
+## 4. 项目文件结构
+
+```
+项目根目录/
+├── main.py                     # 后端主程序 (Python)
+├── FileTransferTool.spec       # PyInstaller 配置文件
+├── app.ico                     # 程序图标 (根目录)
+├── client/                     # 前端资源目录
+│   ├── index.html              # 主页面
+│   ├── style.css               # 样式表 (已适配窄屏)
+│   ├── app.js                  # 前端逻辑 (含复制fallback、消息删除)
+│   ├── all.min.css             # Font Awesome 主文件
+│   └── webfonts/               # 字体文件
+│       ├── fa-brands-400.woff2
+│       ├── fa-regular-400.woff2
+│       └── fa-solid-900.woff2
+├── uploads/                    # 上传文件存储目录 (自动创建)
+├── chat/                       # 聊天记录存储目录 (自动创建)
+└── 日志/                       # 日志文件目录 (自动创建)
+    └── file_transfer.log       # 按天滚动的日志文件
+```
+
+**说明**：
+- `client/webfonts/` 和 `all.min.css` 来自 Font Awesome 6.4.0，已修改 CSS 中的字体路径为 `url(/client/webfonts/...)`。
+- 运行时，`uploads/`、`chat/`、`日志/` 目录会创建在与 EXE 同级的目录下（开发环境下则与 `main.py` 同级）。
+- `download_counts.json` 保存在 `uploads/` 中，记录每个文件的下载次数。
+
+---
+
+## 5. 安装与运行
+
+### 5.1 开发环境运行
+
+**前提**：Python 3.8+ 已安装。
+
+1. **克隆/下载项目** 并进入根目录。
+2. **安装依赖**：
+   ```bash
+   pip install aiohttp qrcode[pil] aiofiles
+   ```
+3. **运行**：
+   ```bash
+   python main.py
+   ```
+4. 控制台会输出本机访问地址（如 `http://localhost:8888`）和局域网访问地址，并自动打开浏览器。
+
+### 5.2 生产环境运行（不打包）
+
+与开发环境相同，确保依赖已安装，执行 `python main.py` 即可。可配合 `nohup` 或 `systemd` 实现后台运行。
+
+---
+
+## 6. 打包为 EXE
+
+使用 **PyInstaller** 生成独立可执行文件，无需 Python 环境即可运行。
+
+### 6.1 安装 PyInstaller
+
+```bash
+pip install pyinstaller
+```
+
+### 6.2 准备打包配置
+
+确保项目根目录下存在 `FileTransferTool.spec`（已提供），且 `app.ico` 图标文件存在。
+
+### 6.3 执行打包
+
+```bash
+pyinstaller FileTransferTool.spec
+```
+
+### 6.4 输出结果
+
+- 打包后的 EXE 位于 `dist/FileTransferTool.exe`
+- 首次运行会在 EXE 同级目录下自动创建 `uploads/`、`chat/`、`日志/` 文件夹
+
+---
+
+## 7. 后端 API 文档
+
+### 7.1 通用信息
+
+- 基础 URL：`http://<服务器IP>:<port>`
+- 所有 API 返回 JSON 格式（文件下载除外）
+- 字符编码：UTF-8
+
+### 7.2 网页及静态资源
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/` 或 `/index.html` | 返回主页面 |
+| GET | `/client/*` | 静态资源（CSS、JS、图标等） |
+
+### 7.3 房间信息与文件管理
+
+| 方法 | 路径 | 描述 | 返回示例 |
+|------|------|------|----------|
+| GET | `/api/room-info` | 获取房间信息（含二维码、文件列表） | `{room_url, qr_code, total_files, total_clients, chat_messages, files, server_ip}` |
+| GET | `/api/files` | 获取文件列表（下载链接） | `{files: [{id, name, size, modified, url, download_count}]}` |
+| POST | `/api/upload` | 上传文件（multipart/form-data） | `{success, filename, size, url}` |
+| GET | `/api/download/{file_id}` | 下载文件（支持断点续传） | 文件流 |
+| DELETE | `/api/delete/{file_id}` | 删除文件 | `{success}` |
+| POST | `/api/batch-delete` | 批量删除文件 | Body: `{files: ["a.txt","b.txt"]}` → `{deleted: [...]}` |
+| POST | `/api/zip-download` | 打包下载选中文件（≤500MB） | Body: `{files: [...]}` → ZIP 流 |
+| POST | `/api/local-copy` | 本机快速复制 | Body: `{file_path: "D:\\test.zip"}` → `{success, filename, size, url}` |
+
+### 7.4 聊天功能
+
+| 方法 | 路径 | 描述 | 返回示例 |
+|------|------|------|----------|
+| GET | `/api/chat/history` | 获取最近 50 条消息 | `{messages: [{id, message, client_name, client_ip, timestamp, time_str}]}` |
+| POST | `/api/chat/send` | 发送文本消息 | Body: `{message: "hello"}` → `{success, message: {...}}` |
+| DELETE | `/api/chat/message/{msg_id}` | 删除指定消息（永久删除） | `{success}` |
+| GET | `/ws` | WebSocket 连接（实时聊天） | 详见 WebSocket 消息格式 |
+
+### 7.5 系统设置
+
+| 方法 | 路径 | 描述 | 返回示例 |
+|------|------|------|----------|
+| GET | `/api/auto-shutdown/status` | 获取自动关闭状态 | `{enabled, remain_seconds}` |
+| POST | `/api/auto-shutdown` | 设置自动关闭开关 | Body: `{enable: true/false}` → `{status, remain_seconds}` |
+
+### 7.6 WebSocket 消息格式
+
+**连接后服务器发送**：
+```json
+{
+  "type": "welcome",
+  "client_id": "xxx",
+  "client_name": "用户1",
+  "chat_history": [...]   // 最近20条消息
+}
+```
+
+**客户端发送**：
+```json
+{
+  "type": "chat_message",
+  "message": "文本内容"
+}
+```
+
+**服务器广播**：
+- 新消息：`{"type": "chat_message", "message": {...}}`
+- 删除消息广播：`{"type": "delete_message", "message_id": "xxx"}`
+
+---
+
+## 8. 前端模块说明
+
+前端为单页面应用 (`index.html`)，核心逻辑在 `app.js` 中。
+
+### 8.1 主要类 `FileTransferApp`
+
+负责：
+- 文件上传/下载进度管理
+- WebSocket 连接与消息收发
+- 文件列表渲染与选择
+- 下载计数本地存储（`localStorage`）
+- 自动关闭倒计时
+- 自定义确认对话框
+
+### 8.2 关键函数
+
+| 方法名 | 功能 |
+|--------|------|
+| `uploadFile(file)` | 使用 XMLHttpRequest 分块上传，实时更新进度 |
+| `downloadFile(fileId, element)` | 流式下载，显示速度/剩余时间，完成后自动保存 |
+| `copyToClipboard(text)` | 复制文本，自动降级（兼容非 HTTPS / 无网环境） |
+| `deleteMessageFromBackend(msgId)` | 调用后端 API 删除消息，并更新界面 |
+| `initAutoShutdown()` | 初始化自动关闭开关和倒计时 |
+| `toggleSelectAll()` / `downloadZip()` / `batchDelete()` | 文件批量操作 |
+
+### 8.3 样式适配 (`style.css`)
+
+- **窄屏（≤768px）**：隐藏 `.file-toolbar .btn-secondary, .btn-primary, .btn-danger`
+- **超窄屏（≤480px）**：调整内边距，文件元数据改为列布局
+- **文件项**：`.file-item` 使用 `flex-wrap: wrap`，文件名 `word-break: break-all`
+- **图标**：`.file-icon` 使用渐变文字，字号 36px
+- **刷新按钮**：`.btn-refresh:active` 添加缩放效果
+
+---
+
+## 9. 配置与自定义
+
+### 9.1 修改默认端口
+
+在 `main.py` 的 `FileTransferServer` 初始化中修改 `port` 参数：
 ```python
-# 端口自动递增算法
-def find_available_port(start_port=8888, max_attempts=100):
-    for port in range(start_port, start_port + max_attempts):
-        try:
-            # 尝试绑定端口
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(('0.0.0.0', port))
-            sock.close()
-            return port
-        except OSError:
-            continue
-    return start_port
+server = FileTransferServer(port=9000)
+```
+
+### 9.2 修改自动关闭时长
+
+修改 `shutdown_after_24h` 中的 `await asyncio.sleep(24 * 3600)` 中的数值（秒）。
+
+### 9.3 修改文件上传分块大小
+
+更改 `self.chunk_size = 1024 * 1024`（单位：字节）。
+
+### 9.4 修改打包下载大小限制
+
+在 `handle_zip_download` 方法中修改：
+```python
+if total_size > 500 * 1024 * 1024:   # 500 MB
+```
+
+### 9.5 日志级别
+
+在 `main.py` 顶部修改：
+```python
+logger.setLevel(logging.DEBUG)   # 输出更详细日志
 ```
 
 ---
 
-## 网络和安全考虑
+## 10. 常见问题
 
-### 1. 局域网限制
-- 服务仅监听局域网接口
-- 不支持外网访问
-- 建议在受信任的网络环境中使用
+### Q1: 手机扫码后无法访问？
+- 确保手机与电脑在同一局域网内。
+- 检查电脑防火墙是否允许对应端口（默认 8888）入站。
+- 尝试在电脑浏览器访问 `http://电脑IP:8888` 验证服务是否正常。
 
-### 2. 文件安全
-- 不支持用户认证
-- 所有连接用户具有相同权限
-- 上传文件直接保存，无病毒扫描
-- 建议定期清理上传目录
+### Q2: 上传大文件时浏览器卡顿？
+- 工具采用分块上传（1MB/块），理论上不会卡死。若遇到问题，请降低分块大小（如 512KB）。
+- 建议使用现代浏览器（Chrome / Edge / Firefox）。
 
-### 3. 资源限制
-- 无文件大小限制
-- 无用户连接数限制
-- 无存储空间限制
+### Q3: 下载的文件损坏？
+- 新版本已修复该问题（使用 `web.FileResponse` 替代了自定义生成器）。如仍有疑问，请检查网络稳定性，或查看日志文件。
+- 确保磁盘空间充足。
 
-### 4. 建议的安全措施
-```python
-# 可以添加的简单安全措施
-class SecurityMiddleware:
-    def check_request(self, request):
-        # 限制文件类型
-        allowed_extensions = {'.jpg', '.png', '.pdf', '.txt'}
-        # 检查Referer
-        # 限制上传频率
-        pass
-```
+### Q4: 聊天消息删除后刷新又出现？
+- 新版本已实现后端真实删除，消息会从聊天记录文件中移除。请确保使用最新 `main.py` 并重启服务。
+
+### Q5: 复制链接在无网环境下无效？
+- 已增加 fallback 机制（临时 textarea + execCommand），即使没有 HTTPS 或 clipboard 权限也能复制。
+
+### Q6: 如何停止服务器？
+- 在控制台按 `Ctrl+C` 即可优雅关闭。若为 EXE，关闭命令行窗口即可。
+
+### Q7: 打包后 EXE 报错 “No module named 'xxx'”？
+- 检查 `FileTransferTool.spec` 中的 `hiddenimports` 是否包含所有依赖，重新打包。
+
+---
+
+## 11. 更新日志
+
+### v2.0.1 (2026-04-29)
+- 修复文件下载中断/损坏问题（改用 `web.FileResponse`）
+- 增加详细控制台和文件日志输出（上传速度、下载断点、WebSocket 状态等）
+- 添加聊天消息真实删除 API（`DELETE /api/chat/message/<id>`）
+- 优化窄屏/手机端 CSS：
+  - 隐藏多余工具栏按钮
+  - 文件复选框左对齐居中
+  - 文件名自动换行
+  - 文件图标放大 + 渐变色
+- 修复复制消息在无网环境下的 fallback
+- 刷新按钮增加按下视觉效果
+
+### v2.0.0 (2026-04-20)
+- 初始稳定版发布
+- 基于 WebSocket + 分片传输，支持断点续传
+- 自动关闭、打包下载、本机复制等功能
+
+---
+
+## 附录：许可与致谢
+
+- 本工具采用 MIT 协议开源。
+- 感谢 `aiohttp`、`qrcode`、`Font Awesome` 等开源项目。
+- 图标资源来自 Font Awesome 6.4.0。
+
+**文档结束**
